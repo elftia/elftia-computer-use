@@ -4,12 +4,12 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { parseArgv } from '../args.js'
+import { parseArgv, type Invocation } from '../args.js'
 import { FakeBackend } from '../testing/fake-backend.js'
 import { runCrop } from './crop.js'
 
 function invok(argv: string[]) {
-  const parsed = parseArgv(['computer-use', ...argv])
+  const parsed = parseArgv(argv)
   if (parsed.kind !== 'command') throw new Error('expected command')
   return parsed.invocation
 }
@@ -57,7 +57,10 @@ describe('runCrop', () => {
     const src = join(dir, 'src.png')
     writeFileSync(src, 'png')
     const backend = new FakeBackend()
-    const inv = invok(['crop', '--in', src, '--region', '100,50,400,250', '--out', dir])
+    const inv = invok(['crop', '--in', src, '--region', '100,50,400,250', '--out', dir]) as Extract<
+      Invocation,
+      { command: 'crop' }
+    >
     const payload = await runCrop(inv, { backend, cwd: process.cwd() } as never)
     expect(payload).toMatchObject({
       ok: true,
