@@ -18,6 +18,7 @@
     "build": "tsc -p tsconfig.build.json && node scripts/build.mjs",
     "test": "vitest run",
     "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "doctor": "node dist/cli.js doctor"
   },
   "devDependencies": {

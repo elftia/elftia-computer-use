@@ -10,6 +10,7 @@ export default tseslint.config(
     files: ['**/*.{js,mjs,ts}'],
     languageOptions: {
       parserOptions: { ecmaVersion: 2022, sourceType: 'module' },
+      globals: { console: 'readonly', process: 'readonly' },
     },
     plugins: { import: importPlugin },
     rules: {
@@ -21,7 +22,7 @@ export default tseslint.config(
         {
           groups: ['builtin', 'external', 'parent', 'sibling', 'index'],
           'newlines-between': 'never',
-          alphabetize: { order: 'asc', caseSensitive: false },
+          alphabetize: { order: 'asc', caseInsensitive: true },
         },
       ],
       '@typescript-eslint/no-unused-vars': [
