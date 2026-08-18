@@ -1,0 +1,32 @@
+{
+  "name": "elftia-computer-use",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Standalone computer-use CLI: JSON-stdout desktop perception and input automation for shell-capable agents (Windows-first).",
+  "type": "module",
+  "bin": {
+    "computer-use": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/build.mjs",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "doctor": "node dist/cli.js doctor"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "eslint-plugin-import": "^2.31.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^3.2.4"
+  }
+}
