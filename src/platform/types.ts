@@ -78,6 +78,32 @@ export interface UiaTreeOptions {
 export interface CaptureOptions {
   outPath: string
   maxEdge?: number
+  /** Screen-absolute capture rect (screenshot --region). Mutually exclusive
+   * with window capture at the command layer. */
+  region?: Region
+}
+
+/** Integer pixel rect, inclusive-exclusive corners (x2 > x1, y2 > y1). */
+export interface Region {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+export interface CropOptions {
+  sourcePath: string
+  region: Region
+  outPath: string
+}
+
+/** Result of cropping an existing image file (zoom semantics: no re-capture). */
+export interface CropResult {
+  path: string
+  width: number
+  height: number
+  source: { path: string; width: number; height: number }
+  region: Region
 }
 
 export interface ProbeInfo {
@@ -98,6 +124,9 @@ export interface PlatformBackend {
   getState(): Promise<RawState>
   captureScreen(opts: CaptureOptions): Promise<CapturedImage>
   captureWindow(windowId: number, opts: CaptureOptions): Promise<CapturedImage>
+  /** Crop an existing image file to a region (in the SOURCE image's own pixel
+   * coordinate frame). Pure image operation — never touches the live screen. */
+  cropImage(opts: CropOptions): Promise<CropResult>
   sendInput(evt: InputEvent): Promise<void>
   uiaTree(opts: UiaTreeOptions): Promise<UiaTreeResult>
   clipboardType(text: string): Promise<void>

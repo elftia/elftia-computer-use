@@ -1,6 +1,8 @@
 import { writeFileSync } from 'node:fs'
 import { CliError } from '../errors.js'
 import type {
+  CropOptions,
+  CropResult,
   AppWindow,
   CapturedImage,
   CaptureOptions,
@@ -121,6 +123,18 @@ export class FakeBackend implements PlatformBackend {
       writeFileSync(captureOpts.outPath, makePng(pngDims.width, pngDims.height))
     }
     return { path: captureOpts.outPath, width: dims.width, height: dims.height }
+  }
+
+  async cropImage(opts: CropOptions): Promise<CropResult> {
+    const w = opts.region.x2 - opts.region.x1
+    const h = opts.region.y2 - opts.region.y1
+    return {
+      path: opts.outPath,
+      width: w,
+      height: h,
+      source: { path: opts.sourcePath, width: 1920, height: 1080 },
+      region: opts.region,
+    }
   }
 
   async captureWindow(

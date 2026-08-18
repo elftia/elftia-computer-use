@@ -1,6 +1,6 @@
 {
   "name": "elftia-computer-use",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Standalone computer-use CLI: JSON-stdout desktop perception and input automation for shell-capable agents (Windows-first).",
   "type": "module",

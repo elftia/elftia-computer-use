@@ -4,7 +4,11 @@
 param(
     [Parameter(Mandatory = $true)][string]$OutPath,
     [long]$WindowId = -1,
-    [int]$MaxEdge = 0
+    [int]$MaxEdge = 0,
+    [int]$X1 = -1,
+    [int]$Y1 = -1,
+    [int]$X2 = -1,
+    [int]$Y2 = -1
 )
 
 . "$PSScriptRoot\_common.ps1"
@@ -14,7 +18,13 @@ try {
     Add-Type -AssemblyName System.Windows.Forms
 
     $srcX = 0; $srcY = 0; $srcW = 0; $srcH = 0
-    if ($WindowId -ge 0) {
+    $hasRegion = ($X1 -ge 0 -and $Y1 -ge 0 -and $X2 -gt $X1 -and $Y2 -gt $Y1)
+    if ($hasRegion -and $WindowId -ge 0) {
+        Emit-Error 'EUSAGE' 'window capture and region capture are mutually exclusive'
+    }
+    if ($hasRegion) {
+        $srcX = $X1; $srcY = $Y1; $srcW = $X2 - $X1; $srcH = $Y2 - $Y1
+    } elseif ($WindowId -ge 0) {
         $info = [ComputerUse.Native]::GetWindow($WindowId)
         if ($info.Width -le 0 -or $info.Height -le 0) {
             Emit-Error 'EINPUT' "window $WindowId has no visible bounds (minimized or closed)"

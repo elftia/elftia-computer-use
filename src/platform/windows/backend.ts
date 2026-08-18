@@ -4,6 +4,8 @@ import type {
   AppWindow,
   CapturedImage,
   CaptureOptions,
+  CropOptions,
+  CropResult,
   InputEvent,
   PlatformBackend,
   ProbeInfo,
@@ -111,6 +113,9 @@ export class WindowsBackend implements PlatformBackend {
     if (windowId !== undefined) {
       args.push('-WindowId', windowId)
     }
+    if (opts.region !== undefined) {
+      args.push('-X1', opts.region.x1, '-Y1', opts.region.y1, '-X2', opts.region.x2, '-Y2', opts.region.y2)
+    }
     if (opts.maxEdge !== undefined) {
       args.push('-MaxEdge', opts.maxEdge)
     }
@@ -128,6 +133,27 @@ export class WindowsBackend implements PlatformBackend {
 
   captureScreen(opts: CaptureOptions): Promise<CapturedImage> {
     return this.capture(undefined, opts)
+  }
+
+  async cropImage(opts: CropOptions): Promise<CropResult> {
+    const args: Array<string | number> = [
+      '-InPath', opts.sourcePath,
+      '-X1', opts.region.x1, '-Y1', opts.region.y1, '-X2', opts.region.x2, '-Y2', opts.region.y2,
+      '-OutPath', opts.outPath,
+    ]
+    const json = await this.runner.run('crop.ps1', args, { timeoutMs: 30_000 })
+    const sourceEcho = (json.source ?? {}) as Record<string, unknown>
+    return {
+      path: toStr(json.path),
+      width: toNum(json.width, 'crop.width'),
+      height: toNum(json.height, 'crop.height'),
+      source: {
+        path: toStr(sourceEcho.path ?? opts.sourcePath),
+        width: toNum(sourceEcho.width, 'crop.source.width'),
+        height: toNum(sourceEcho.height, 'crop.source.height'),
+      },
+      region: opts.region,
+    }
   }
 
   captureWindow(windowId: number, opts: CaptureOptions): Promise<CapturedImage> {
