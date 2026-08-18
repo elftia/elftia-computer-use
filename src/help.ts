@@ -6,9 +6,15 @@ Usage:
 Commands:
   apps                                        List top-level application windows (JSON array)
   get-state [--app <pid>] [--out <dir>]       Write state.json + screen.png into --out; stdout carries the state path + metadata
-  screenshot [--window <id>] [--out <dir>] [--max-edge <px>]
+  screenshot [--window <id>] [--region <x1,y1,x2,y2>] [--out <dir>] [--max-edge <px>]
                                               Write screen.png; stdout carries {path, width, height, window}
                                               width/height are the PNG's ACTUAL pixel dims (after crop/downsample)
+                                              --region is screen-absolute and excludes --window
+  crop --in <png> --region <x1,y1,x2,y2> [--out <dir>]
+                                              Crop an EXISTING image file (zoom for reading fine text;
+                                              never re-captures the screen). Region is in the SOURCE
+                                              image's own pixel frame; stdout carries {path, width,
+                                              height, source, region}
   click --x <n> --y <n> [--button left|right|middle] [--double|--triple] [--mods ctrl|shift|alt]
                                               Click at screen coordinates (--mods combinable: ctrl+shift)
   click --state <state.json> --element <idx>  Click a prior get-state element; coordinates are rescaled

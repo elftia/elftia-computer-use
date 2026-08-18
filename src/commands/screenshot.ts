@@ -16,7 +16,7 @@ export async function runScreenshot(
 ): Promise<CommandPayload> {
   const dir = ensureDir(resolveOutDir(deps, inv.out))
   const outPath = join(dir, 'screen.png')
-  const captureOpts = { outPath, maxEdge: inv.maxEdge }
+  const captureOpts = { outPath, maxEdge: inv.maxEdge, region: inv.region }
   const img =
     inv.window !== undefined
       ? await deps.backend.captureWindow(inv.window, captureOpts)

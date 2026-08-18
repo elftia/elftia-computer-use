@@ -36,6 +36,10 @@ export class StubBackend implements PlatformBackend {
     this.fail('get-state')
   }
 
+  cropImage(): Promise<never> {
+    this.fail('crop')
+  }
+
   async captureScreen(_opts: CaptureOptions): Promise<CapturedImage> {
     this.fail('screenshot')
   }

@@ -1,10 +1,12 @@
 import { CliError } from './errors.js'
 import { parseCombo, parseMods, type Modifier } from './keys.js'
+import type { Region } from './platform/types.js'
 
 export type CommandName =
   | 'apps'
   | 'get-state'
   | 'screenshot'
+  | 'crop'
   | 'click'
   | 'type'
   | 'key'
@@ -17,6 +19,7 @@ export const COMMAND_NAMES: readonly CommandName[] = [
   'apps',
   'get-state',
   'screenshot',
+  'crop',
   'click',
   'type',
   'key',
@@ -32,7 +35,8 @@ export type Direction = 'up' | 'down' | 'left' | 'right'
 export type Invocation =
   | { command: 'apps' }
   | { command: 'get-state'; app?: number; out?: string }
-  | { command: 'screenshot'; window?: number; out?: string; maxEdge?: number }
+  | { command: 'screenshot'; window?: number; out?: string; maxEdge?: number; region?: Region }
+  | { command: 'crop'; in: string; region: Region; out?: string }
   | {
       command: 'click'
       mode: 'coords' | 'element'
@@ -85,7 +89,8 @@ export type ParseResult =
 const VALUE_FLAGS: Record<CommandName, readonly string[]> = {
   apps: [],
   'get-state': ['app', 'out'],
-  screenshot: ['window', 'out', 'max-edge'],
+  screenshot: ['window', 'out', 'max-edge', 'region'],
+  crop: ['in', 'region', 'out'],
   click: ['x', 'y', 'button', 'mods', 'state', 'element', 'out'],
   type: ['text', 'out'],
   key: ['combo', 'out'],
@@ -99,6 +104,7 @@ const BOOL_FLAGS: Record<CommandName, readonly string[]> = {
   apps: [],
   'get-state': [],
   screenshot: [],
+  crop: [],
   click: ['double', 'triple', 'shot'],
   type: ['shot'],
   key: ['shot'],
@@ -238,6 +244,26 @@ function getBool(flags: FlagMap, name: string): boolean {
   return flags.get(name) === true
 }
 
+function parseRegion(raw: string): Region {
+  const parts = raw.split(',').map((p) => p.trim())
+  if (parts.length !== 4 || parts.some((p) => !/^-?\d+$/.test(p))) {
+    usage('--region expects four integers: x1,y1,x2,y2')
+  }
+  const [x1, y1, x2, y2] = parts.map((p) => Number.parseInt(p, 10))
+  if (x2 <= x1 || y2 <= y1) {
+    usage('--region requires x2 > x1 and y2 > y1')
+  }
+  if (x1 < 0 || y1 < 0) {
+    usage('--region coordinates must be non-negative')
+  }
+  return { x1, y1, x2, y2 }
+}
+
+function getRegion(flags: FlagMap): Region | undefined {
+  const raw = getString(flags, 'region')
+  return raw === undefined ? undefined : parseRegion(raw)
+}
+
 function buildInvocation(command: CommandName, flags: FlagMap): Invocation {
   switch (command) {
     case 'apps':
@@ -253,8 +279,25 @@ function buildInvocation(command: CommandName, flags: FlagMap): Invocation {
     case 'screenshot': {
       const window = getWindowId(flags)
       const maxEdge = getInt(flags, 'max-edge', { min: 1, max: 65535 })
+      const region = getRegion(flags)
+      if (window !== undefined && region !== undefined) {
+        usage('use either --window or --region, not both')
+      }
       const out = getString(flags, 'out')
-      return { command, window, maxEdge, out }
+      return { command, window, maxEdge, region, out }
+    }
+
+    case 'crop': {
+      const inPath = getString(flags, 'in')
+      if (!inPath) {
+        usage('crop requires --in <png>')
+      }
+      const region = getRegion(flags)
+      if (!region) {
+        usage('crop requires --region <x1,y1,x2,y2>')
+      }
+      const out = getString(flags, 'out')
+      return { command, in: inPath, region, out }
     }
 
     case 'click': {

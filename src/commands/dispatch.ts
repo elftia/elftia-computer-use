@@ -6,6 +6,7 @@ import { runDoctor } from './doctor.js'
 import { runDrag } from './drag.js'
 import { runGetState } from './get-state.js'
 import { runKey } from './key.js'
+import { runCrop } from './crop.js'
 import { runScreenshot } from './screenshot.js'
 import { runScroll } from './scroll.js'
 import { runType } from './type.js'
@@ -20,6 +21,9 @@ export async function dispatch(
       return runApps(deps)
     case 'get-state':
       return runGetState(invocation, deps)
+    case 'crop':
+      return runCrop(invocation, deps)
+
     case 'screenshot':
       return runScreenshot(invocation, deps)
     case 'click':
