@@ -158,10 +158,12 @@ Written by `get-state` next to `screen.png`:
 ## Development
 
 ```bash
-npm run lint     # self-contained flat eslint (no-var, eqeqeq, prefer-const, import order)
-npm test         # vitest; full unit suite passes on any OS via the injectable
-                 # PlatformBackend seam; real-PowerShell tests are skipIf(!win32)
-npm run build    # tsc + copy .ps1 scripts + verify bin shebang
+npm run lint       # self-contained flat eslint (no-var, eqeqeq, prefer-const, import order)
+npm run typecheck  # tsc --noEmit over the full program incl. test files (vitest
+                   # transpiles without type-checking; this closes that gap)
+npm test           # vitest; full unit suite passes on any OS via the injectable
+                   # PlatformBackend seam; real-PowerShell tests are skipIf(!win32)
+npm run build      # tsc + copy .ps1 scripts + verify bin shebang
 node dist/cli.js doctor   # end-to-end self-test
 ```
 
