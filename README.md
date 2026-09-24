@@ -61,6 +61,44 @@ Common options:
 `--window` accepts decimal or `0x`-prefixed window ids (as printed by `apps`).
 Screen coordinates may be negative (multi-monitor desktops).
 
+## Optional MadoPilot native sidecar
+
+The `mado` command adds native window capture, image template matching, OCR and
+frame-bound primary-button input. On Windows, the CLI finds a native bundle in
+`dist/native/` beside `dist/commands/`; alternatively set
+`ELFTIA_MADO_PILOT_SIDECAR` to an absolute executable path. Put the matching
+OpenCV DLL next to the executable. The pinned upstream commit and build details
+are in `native/mado-pilot-sidecar/README.md`. The core PowerShell commands remain
+available without the sidecar.
+
+```text
+computer-use mado --action health
+computer-use mado --action list-targets
+computer-use mado --action capture --target <id> --out <dir>
+computer-use mado --action find-template --target <id> --template <png> --min-score 0.9
+computer-use mado --action wait-template --target <id> --template <png> --timeout-ms 10000
+computer-use mado --action read-text --target <id>
+computer-use mado --action click --target <id> --x <capture-pixel> --y <capture-pixel> --route window-message --expected-hash <capture image_hash>
+```
+
+`list-targets` returns window selectors under `targets[].id`. Each command
+starts a new sidecar process and rediscovers the window by title and verified
+process identity; ambiguous matches are refused. A window recreated in the
+same process with the same title cannot be distinguished by selector alone.
+`click` requires the `image_hash` from a preceding `capture` and refuses an
+image mismatch. `x` and `y` are capture-image pixels, unlike the core
+screen-global `click` command. A click reports native submission and a newer
+capture when the window publishes one; otherwise it returns
+`after_available:false`. Inspect a fresh capture to verify the application
+effect. `window-message` may submit to a top-level window without activating a
+child control; `system` may need to activate the target. Do not retry a
+failed click automatically because input may have been partially submitted.
+
+OCR finds `models/rapidocr-v3.9.2/` and `onnxruntime.dll` next to the native
+executable. For a different location, set both `ELFTIA_MADO_PILOT_MODEL_ROOT`
+and `ELFTIA_MADO_PILOT_RUNTIME_PATH` to absolute paths. The CLI does not
+download models.
+
 ## JSON / stdout contract
 
 Every command prints **exactly one JSON object** to stdout and exits `0` on success,

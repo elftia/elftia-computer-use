@@ -14,6 +14,7 @@ export type CommandName =
   | 'drag'
   | 'uia-tree'
   | 'doctor'
+  | 'mado'
 
 export const COMMAND_NAMES: readonly CommandName[] = [
   'apps',
@@ -27,7 +28,14 @@ export const COMMAND_NAMES: readonly CommandName[] = [
   'drag',
   'uia-tree',
   'doctor',
+  'mado',
 ]
+
+export type MadoInvocation =
+  | { command: 'mado'; action: 'health' | 'list-targets'; out?: string }
+  | { command: 'mado'; action: 'capture' | 'read-text'; target: string; out?: string }
+  | { command: 'mado'; action: 'find-template' | 'wait-template'; target: string; template: string; minScore: number; timeoutMs?: number; out?: string }
+  | { command: 'mado'; action: 'click'; target: string; x: number; y: number; route: 'system' | 'window-message' | 'process-directed'; expectedHash: string; out?: string }
 
 export type Button = 'left' | 'right' | 'middle'
 export type Direction = 'up' | 'down' | 'left' | 'right'
@@ -80,6 +88,7 @@ export type Invocation =
     }
   | { command: 'uia-tree'; app?: number; maxDepth: number; out?: string }
   | { command: 'doctor' }
+  | MadoInvocation
 
 export type ParseResult =
   | { kind: 'help' }
@@ -98,6 +107,7 @@ const VALUE_FLAGS: Record<CommandName, readonly string[]> = {
   drag: ['from-x', 'from-y', 'to-x', 'to-y', 'out'],
   'uia-tree': ['app', 'max-depth', 'out'],
   doctor: [],
+  mado: ['action', 'target', 'template', 'min-score', 'timeout-ms', 'x', 'y', 'route', 'expected-hash', 'out'],
 }
 
 const BOOL_FLAGS: Record<CommandName, readonly string[]> = {
@@ -112,6 +122,7 @@ const BOOL_FLAGS: Record<CommandName, readonly string[]> = {
   drag: ['shot'],
   'uia-tree': [],
   doctor: [],
+  mado: [],
 }
 
 type FlagMap = Map<string, string | boolean>
@@ -201,6 +212,9 @@ function getInt(
     usage(`option --${name} must be an integer, got "${raw}"`)
   }
   const n = Number.parseInt(raw, 10)
+  if (!Number.isSafeInteger(n)) {
+    usage(`option --${name} must be a safe integer`)
+  }
   if (opts.min !== undefined && n < opts.min) {
     usage(`option --${name} must be >= ${opts.min}, got ${n}`)
   }
@@ -208,6 +222,56 @@ function getInt(
     usage(`option --${name} must be <= ${opts.max}, got ${n}`)
   }
   return n
+}
+
+function madoScore(flags: FlagMap): number {
+  const raw = getString(flags, 'min-score')
+  if (raw === undefined) return 0.85
+  const score = Number(raw)
+  if (raw.trim() === '' || !Number.isFinite(score) || score < 0 || score > 1) {
+    usage('--min-score must be a finite number between 0 and 1')
+  }
+  return score
+}
+
+function rejectMadoFlags(flags: FlagMap, allowed: readonly string[]): void {
+  for (const key of flags.keys()) {
+    if (!allowed.includes(key)) usage(`--${key} is not valid for this mado action`)
+  }
+}
+
+function madoInvocation(flags: FlagMap): MadoInvocation {
+  const action = requireString(flags, 'action')
+  const out = getString(flags, 'out')
+  if (action === 'health' || action === 'list-targets') {
+    rejectMadoFlags(flags, ['action', 'out'])
+    return { command: 'mado', action, out }
+  }
+  const target = requireString(flags, 'target')
+  if (!/^[a-f0-9]{64}$/.test(target)) usage('--target must be an id returned by mado list-targets')
+  if (action === 'capture' || action === 'read-text') {
+    rejectMadoFlags(flags, ['action', 'target', 'out'])
+    return { command: 'mado', action, target, out }
+  }
+  if (action === 'find-template' || action === 'wait-template') {
+    rejectMadoFlags(flags, ['action', 'target', 'template', 'min-score', 'timeout-ms', 'out'])
+    if (action === 'find-template' && flags.has('timeout-ms')) usage('--timeout-ms requires wait-template')
+    const template = requireString(flags, 'template')
+    if (!template) usage('--template must not be empty')
+    const timeoutMs = action === 'wait-template' ? getInt(flags, 'timeout-ms', { min: 1, max: 120000 }) ?? 10000 : undefined
+    return { command: 'mado', action, target, template, minScore: madoScore(flags), timeoutMs, out }
+  }
+  if (action === 'click') {
+    rejectMadoFlags(flags, ['action', 'target', 'x', 'y', 'route', 'expected-hash', 'out'])
+    const route = requireString(flags, 'route')
+    if (route !== 'system' && route !== 'window-message' && route !== 'process-directed') {
+      usage('--route must be system, window-message or process-directed')
+    }
+    const expectedHash = requireString(flags, 'expected-hash')
+    if (!/^[a-f0-9]{64}$/.test(expectedHash)) usage('--expected-hash must be the image_hash returned by mado capture')
+    return { command: 'mado', action, target, x: requireInt(flags, 'x', { min: 0 }), y: requireInt(flags, 'y', { min: 0 }), route, expectedHash, out }
+  }
+  usage(`unknown mado action "${action}"`)
 }
 
 function requireInt(flags: FlagMap, name: string, opts: { min?: number; max?: number } = {}): number {
@@ -269,6 +333,9 @@ function buildInvocation(command: CommandName, flags: FlagMap): Invocation {
     case 'apps':
     case 'doctor':
       return { command }
+
+    case 'mado':
+      return madoInvocation(flags)
 
     case 'get-state': {
       const app = getInt(flags, 'app', { min: 1 })

@@ -1,12 +1,13 @@
 import type { Invocation } from '../args.js'
 import { runApps } from './apps.js'
 import { runClick } from './click.js'
+import { runCrop } from './crop.js'
 import type { CommandDeps, CommandPayload } from './deps.js'
 import { runDoctor } from './doctor.js'
 import { runDrag } from './drag.js'
 import { runGetState } from './get-state.js'
 import { runKey } from './key.js'
-import { runCrop } from './crop.js'
+import { runMado } from './mado.js'
 import { runScreenshot } from './screenshot.js'
 import { runScroll } from './scroll.js'
 import { runType } from './type.js'
@@ -40,5 +41,7 @@ export async function dispatch(
       return runUiaTree(invocation, deps)
     case 'doctor':
       return runDoctor(invocation, deps)
+    case 'mado':
+      return runMado(invocation, deps)
   }
 }

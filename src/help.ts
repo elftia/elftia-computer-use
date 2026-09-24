@@ -29,6 +29,7 @@ Commands:
   uia-tree [--app <pid>] [--max-depth <n>] [--out <file>]
                                               Write the UIA tree to a file; stdout carries path + node count
   doctor                                      Run non-destructive self-tests (PowerShell, UTF-8, screenshot, input)
+  mado --action <action> [options]            Optional MadoPilot native window capture, template matching, OCR, input
 
 Common options:
   --out <dir|file>    Output location (default: <cwd>/.computer-use/<timestamp>/)
@@ -36,12 +37,24 @@ Common options:
   --help, -h          Show this help
   --version, -V       Print the CLI version
 
+MadoPilot actions (Windows native bundle beside CLI, or ELFTIA_MADO_PILOT_SIDECAR=<absolute path>):
+  mado --action health|list-targets
+  mado --action capture|read-text --target <id> [--out <dir>]
+  mado --action find-template|wait-template --target <id> --template <png>
+       [--min-score <0..1>] [--timeout-ms <1..120000>] [--out <dir>]
+  mado --action click --target <id> --x <capture-pixel> --y <capture-pixel>
+       --route system|window-message|process-directed --expected-hash <capture image_hash> [--out <dir>]
+  The id comes from list-targets. A new native process verifies the window on
+  each invocation. Click is one primary-button click and requires a matching capture hash.
+  OCR uses bundled models/runtime, or both ELFTIA_MADO_PILOT_MODEL_ROOT and
+  ELFTIA_MADO_PILOT_RUNTIME_PATH (absolute paths).
+
 Output discipline:
   Every command prints exactly one JSON object to stdout; exit code 0 = success, 1 = failure.
   Screenshots and UIA trees are always written to files — stdout carries paths and metadata only.
   Failure shape: {"ok": false, "error": {"code": "...", "message": "..."}}
   Error codes: EUSAGE, ENOTSUPPORTED, EBACKEND, EINPUT, ESTALE, EIO.
 
-Platform support: Windows (zero-dependency PowerShell backend).
+Platform support: Windows (zero-dependency PowerShell core; optional native MadoPilot).
 macOS/Linux: commands fail with ENOTSUPPORTED (honest failure, no fake success).
 `

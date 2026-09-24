@@ -1,0 +1,16 @@
+[package]
+name = "elftia-mado-pilot-sidecar"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+
+[dependencies]
+mado-pilot = { git = "https://github.com/pashifika/mado-pilot.git", rev = "e6b3f55914fb942afe4049630e659b2793ea1220" }
+png = "0.18.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.11"
+
+[lints.rust]
+unsafe_code = "forbid"
