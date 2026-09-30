@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { CuaInvocation } from '../args.js'
 import { CliError } from '../errors.js'
 import type { CommandDeps, CommandPayload } from './deps.js'
@@ -18,18 +21,68 @@ export interface CuaDriverSurface {
 
 export type LoadCuaDriver = () => Promise<CuaDriverSurface>
 
+function importFromNodeModules(nodeModulesDir: string): Promise<{
+  CuaDriver: { create(options: undefined): CuaDriverSurface }
+}> {
+  // The SDK is ESM-only with a restrictive exports map, so resolve its entry
+  // by reading package.json instead of require.resolve (CJS resolution).
+  const pkgJson = join(nodeModulesDir, '@trycua', 'cua-driver', 'package.json')
+  if (!existsSync(pkgJson)) throw new Error('no package.json')
+  const pkg = JSON.parse(readFileSync(pkgJson, 'utf8')) as { main?: string }
+  const entry = pkg.main ?? './dist/index.js'
+  const entryPath = join(nodeModulesDir, '@trycua', 'cua-driver', entry)
+  if (!existsSync(entryPath)) throw new Error('entry missing')
+  return import(pathToFileURL(entryPath).href) as Promise<{
+    CuaDriver: { create(options: undefined): CuaDriverSurface }
+  }>
+}
+
+/**
+ * Candidate `node_modules` roots for the SDK, in order:
+ *  1. `ELFTIA_CUA_DRIVER_NODE_MODULES` (absolute override);
+ *  2. `prebuilds/<platform>-<arch>/node_modules` in any ancestor directory of
+ *     this file — the plugin packaging channel ships the SDK there, and the
+ *     vendored CLI sits inside the same plugin tree (skills/…/scripts).
+ * Bare `import('@trycua/cua-driver')` is tried first for repo/dev shapes
+ * where node_modules sits beside the CLI scripts.
+ */
+export function candidateSdkNodeModules(): string[] {
+  const platformDir = `prebuilds/${process.platform}-${process.arch}`
+  const roots: string[] = []
+  const override = process.env.ELFTIA_CUA_DRIVER_NODE_MODULES
+  if (override) roots.push(override)
+  let dir = dirname(fileURLToPath(import.meta.url))
+  for (let depth = 0; depth < 12; depth += 1) {
+    roots.push(join(dir, platformDir, 'node_modules'))
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return roots
+}
+
 export const defaultLoadCuaDriver: LoadCuaDriver = async () => {
+  const unavailable = new CliError(
+    'ENOTSUPPORTED',
+    'Cua Driver SDK is unavailable — install @trycua/cua-driver (npm, the plugin prebuilds channel, or ELFTIA_CUA_DRIVER_NODE_MODULES) or fall back to the core/mado commands',
+  )
   try {
     const mod = (await import('@trycua/cua-driver')) as {
       CuaDriver: { create(options: undefined): CuaDriverSurface }
     }
     return mod.CuaDriver.create(undefined)
   } catch {
-    throw new CliError(
-      'ENOTSUPPORTED',
-      'Cua Driver SDK is unavailable — install @trycua/cua-driver (npm, with the platform native package) or fall back to the core/mado commands',
-    )
+    /* fall through to the explicit-root candidates below */
   }
+  for (const root of candidateSdkNodeModules()) {
+    try {
+      const mod = await importFromNodeModules(root)
+      return mod.CuaDriver.create(undefined)
+    } catch {
+      /* try the next candidate root */
+    }
+  }
+  throw unavailable
 }
 
 interface ToolResultShape {
