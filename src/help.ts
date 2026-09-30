@@ -30,6 +30,19 @@ Commands:
                                               Write the UIA tree to a file; stdout carries path + node count
   doctor                                      Run non-destructive self-tests (PowerShell, UTF-8, screenshot, input)
   mado --action <action> [options]            Optional MadoPilot native window capture, template matching, OCR, input
+  cua --action <tool> [--args <json>] [--session <label>]
+                                              One-shot Cua Driver SDK tool call (in-process, no daemon).
+                                              --action health  checks SDK + native runtime
+                                              --action list-tools  dumps the tool schema list
+                                              --args is the tool's JSON object (snake_case keys); a session
+                                              label is always attached (default "elftia") because snapshots,
+                                              element_tokens and window captures bind to the session
+  cua-serve [--host 127.0.0.1] [--port 0]     Long-lived Cua Driver server: ONE shared driver instance for
+                                              multi-step tasks so snapshot ids / element_tokens stay valid.
+                                              Prints {url, token, pid} once, then serves until POST /shutdown:
+                                                GET  /health           bearer token required
+                                                POST /call             {"action": "<tool>", "args": {...}}
+                                                POST /shutdown         ends the server cleanly
 
 Common options:
   --out <dir|file>    Output location (default: <cwd>/.computer-use/<timestamp>/)
@@ -55,6 +68,7 @@ Output discipline:
   Failure shape: {"ok": false, "error": {"code": "...", "message": "..."}}
   Error codes: EUSAGE, ENOTSUPPORTED, EBACKEND, EINPUT, ESTALE, EIO.
 
-Platform support: Windows (zero-dependency PowerShell core; optional native MadoPilot).
-macOS/Linux: commands fail with ENOTSUPPORTED (honest failure, no fake success).
+Platform support: Windows (zero-dependency PowerShell core; optional native MadoPilot; Cua Driver SDK).
+macOS/Linux: core commands fail with ENOTSUPPORTED (honest failure, no fake success); the Cua SDK
+ships native packages for all three platforms.
 `

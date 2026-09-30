@@ -99,6 +99,48 @@ executable. For a different location, set both `ELFTIA_MADO_PILOT_MODEL_ROOT`
 and `ELFTIA_MADO_PILOT_RUNTIME_PATH` to absolute paths. The CLI does not
 download models.
 
+## Cua Driver SDK route (`cua` / `cua-serve`)
+
+The `cua` command family drives the Cua Driver TypeScript SDK in-process
+(`CuaDriver.create()`, no daemon) — semantic element tokens, background input
+that does not steal foreground focus, typed browser actions, and honest
+per-action effect reporting. It is the preferred execution backend for GUI
+tasks; MadoPilot stays the perception layer (OCR / template matching), and the
+PowerShell core commands remain the last-resort fallback.
+
+```text
+computer-use cua --action health
+computer-use cua --action list-tools
+computer-use cua --action list_windows --args '{}'
+computer-use cua --action get_window_state --args '{"pid":123,"window_id":456,"include_screenshot":true,"screenshot_out_file":"C:\shot.png"}'
+computer-use cua --action click --args '{"pid":123,"window_id":456,"element_token":"s00000001:0","delivery_mode":"background"}'
+```
+
+- `--action <tool>` is the SDK tool name (snake_case, exactly as in
+  `list-tools`); `--args` is that tool's JSON object. The CLI always attaches a
+  session label (`--session`, default `elftia`) — snapshots, element_tokens and
+  window captures bind to the session, and capture publication without one
+  fails with `capture binding is invalid`.
+- One-shot `cua` creates and destroys a driver per invocation: snapshot ids and
+  element_tokens do not survive the process. Use `cua-serve` for multi-step
+  tasks.
+- `cua-serve [--host 127.0.0.1] [--port 0]` starts a long-lived server holding
+  ONE shared driver instance, so snapshot → element_token action → verify runs
+  against the same session. It prints one JSON object (`url`, `token`, `pid`)
+  and serves `GET /health`, `POST /call {"action","args"}` and
+  `POST /shutdown`, each requiring `Authorization: Bearer <token>`.
+- Background pixel clicks share a process-wide UIA single-flight gate with
+  window enumeration; if a hung provider holds the gate, pixel actions return
+  `background_unavailable` (honest error, no input sent). Element-token actions
+  are unaffected — prefer them; treat pixel failure as the signal to fall back
+  to Mado template input or escalate to `delivery_mode:"foreground"` only with
+  user authorization.
+
+The SDK ships as `@trycua/cua-driver` with platform native packages
+(`cua_driver_sdk.dll` + `cua_driver_node_runtime.node`, ~27 MB on win32-x64).
+The npm install happens on the build machine; the plugin distribution carries
+the installed `node_modules` tree so end users need no network or npm.
+
 ## JSON / stdout contract
 
 Every command prints **exactly one JSON object** to stdout and exits `0` on success,
@@ -205,5 +247,7 @@ npm run build      # tsc + copy .ps1 scripts + verify bin shebang
 node dist/cli.js doctor   # end-to-end self-test
 ```
 
-All agent-facing text (help, errors, docs) is English. Zero runtime dependencies;
-dev-only tooling lives in `devDependencies`. Not published to npm.
+All agent-facing text (help, errors, docs) is English. The core command set stays
+zero-runtime-dependency (PowerShell facade); the optional Cua Driver route adds
+`@trycua/cua-driver` (bundled native runtime, no global install) as the first
+runtime dependency. Dev-only tooling lives in `devDependencies`. Not published to npm.

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseArgv } from './args.js'
+import { runCuaServe } from './commands/cua-serve.js'
 import { createDefaultDeps } from './commands/deps.js'
 import { dispatch } from './commands/dispatch.js'
 import { toCliError } from './errors.js'
@@ -15,6 +16,12 @@ async function main(): Promise<number> {
   }
   if (parsed.kind === 'version') {
     process.stdout.write(`${VERSION}\n`)
+    return 0
+  }
+  if (parsed.invocation.command === 'cua-serve') {
+    // Long-lived server: prints its own startup JSON and keeps the process
+    // alive until POST /shutdown or a signal; it never returns to main().
+    await runCuaServe(parsed.invocation)
     return 0
   }
   const payload = await dispatch(parsed.invocation, createDefaultDeps())

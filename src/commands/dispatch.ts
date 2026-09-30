@@ -1,7 +1,8 @@
-import type { Invocation } from '../args.js'
+import type { CuaServeInvocation, Invocation } from '../args.js'
 import { runApps } from './apps.js'
 import { runClick } from './click.js'
 import { runCrop } from './crop.js'
+import { runCua } from './cua.js'
 import type { CommandDeps, CommandPayload } from './deps.js'
 import { runDoctor } from './doctor.js'
 import { runDrag } from './drag.js'
@@ -13,8 +14,12 @@ import { runScroll } from './scroll.js'
 import { runType } from './type.js'
 import { runUiaTree } from './uia-tree.js'
 
+/** cua-serve owns the process lifecycle (long-lived HTTP server) and is
+ * dispatched by cli.ts directly, never through this one-shot dispatcher. */
+export type DispatchInvocation = Exclude<Invocation, CuaServeInvocation>
+
 export async function dispatch(
-  invocation: Invocation,
+  invocation: DispatchInvocation,
   deps: CommandDeps,
 ): Promise<CommandPayload> {
   switch (invocation.command) {
@@ -43,5 +48,7 @@ export async function dispatch(
       return runDoctor(invocation, deps)
     case 'mado':
       return runMado(invocation, deps)
+    case 'cua':
+      return runCua(invocation, deps)
   }
 }

@@ -1,9 +1,7 @@
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-
 import { describe, expect, it } from 'vitest'
-
 import { parseArgv, type Invocation } from '../args.js'
 import { FakeBackend } from '../testing/fake-backend.js'
 import { runCrop } from './crop.js'

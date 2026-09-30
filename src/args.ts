@@ -15,6 +15,8 @@ export type CommandName =
   | 'uia-tree'
   | 'doctor'
   | 'mado'
+  | 'cua'
+  | 'cua-serve'
 
 export const COMMAND_NAMES: readonly CommandName[] = [
   'apps',
@@ -29,6 +31,8 @@ export const COMMAND_NAMES: readonly CommandName[] = [
   'uia-tree',
   'doctor',
   'mado',
+  'cua',
+  'cua-serve',
 ]
 
 export type MadoInvocation =
@@ -39,6 +43,22 @@ export type MadoInvocation =
 
 export type Button = 'left' | 'right' | 'middle'
 export type Direction = 'up' | 'down' | 'left' | 'right'
+
+export type CuaInvocation = {
+  command: 'cua'
+  /** SDK tool name (list via `cua --action list-tools`), or `health` / `list-tools`. */
+  action: string
+  /** JSON object with the tool's arguments (snake_case, as in the tools list). */
+  args?: string
+  /** Session label: binds snapshot/element_token/capture lifecycles. Always set. */
+  session: string
+}
+
+export type CuaServeInvocation = {
+  command: 'cua-serve'
+  host: string
+  port: number
+}
 
 export type Invocation =
   | { command: 'apps' }
@@ -89,6 +109,8 @@ export type Invocation =
   | { command: 'uia-tree'; app?: number; maxDepth: number; out?: string }
   | { command: 'doctor' }
   | MadoInvocation
+  | CuaInvocation
+  | CuaServeInvocation
 
 export type ParseResult =
   | { kind: 'help' }
@@ -108,6 +130,8 @@ const VALUE_FLAGS: Record<CommandName, readonly string[]> = {
   'uia-tree': ['app', 'max-depth', 'out'],
   doctor: [],
   mado: ['action', 'target', 'template', 'min-score', 'timeout-ms', 'x', 'y', 'route', 'expected-hash', 'out'],
+  cua: ['action', 'args', 'session'],
+  'cua-serve': ['host', 'port'],
 }
 
 const BOOL_FLAGS: Record<CommandName, readonly string[]> = {
@@ -123,6 +147,8 @@ const BOOL_FLAGS: Record<CommandName, readonly string[]> = {
   'uia-tree': [],
   doctor: [],
   mado: [],
+  cua: [],
+  'cua-serve': [],
 }
 
 type FlagMap = Map<string, string | boolean>
@@ -336,6 +362,38 @@ function buildInvocation(command: CommandName, flags: FlagMap): Invocation {
 
     case 'mado':
       return madoInvocation(flags)
+
+    case 'cua': {
+      const action = requireString(flags, 'action')
+      if (action === '') {
+        usage('option --action must not be empty')
+      }
+      const args = getString(flags, 'args')
+      if (args !== undefined) {
+        try {
+          const parsed = JSON.parse(args) as unknown
+          if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            usage('--args must be a JSON object')
+          }
+        } catch {
+          usage('--args must be a JSON object')
+        }
+      }
+      const session = getString(flags, 'session') ?? 'elftia'
+      if (!/^[\w.-]{1,64}$/.test(session)) {
+        usage('--session must be 1-64 of [A-Za-z0-9_.-]')
+      }
+      return { command, action, args, session }
+    }
+
+    case 'cua-serve': {
+      const host = getString(flags, 'host') ?? '127.0.0.1'
+      if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') {
+        usage('--host must be 127.0.0.1, localhost or ::1 (cua-serve binds loopback only)')
+      }
+      const port = getInt(flags, 'port', { min: 0, max: 65535 }) ?? 0
+      return { command, host, port }
+    }
 
     case 'get-state': {
       const app = getInt(flags, 'app', { min: 1 })
