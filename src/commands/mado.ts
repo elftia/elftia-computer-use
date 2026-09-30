@@ -6,6 +6,7 @@ import type { MadoInvocation } from '../args.js'
 import { CliError } from '../errors.js'
 import { ensureDir, resolveOutDir } from '../out-dir.js'
 import type { CommandDeps, CommandPayload } from './deps.js'
+import { withForegroundNotice } from './foreground-notice.js'
 
 const MAX_RESPONSE_BYTES = 1024 * 1024
 
@@ -157,10 +158,15 @@ export async function runMado(
 ): Promise<CommandPayload> {
   const { executable, modelArgs } = sidecarOptions(environment)
   const outputRoot = ensureDir(resolveOutDir(deps, invocation.out))
-  const data = await invokeSidecar(
+  const perform = () => invokeSidecar(
     executable, ['--output-root', outputRoot, ...(invocation.action === 'health' || invocation.action === 'read-text' ? modelArgs : [])], sidecarRequest(invocation),
     deadlineMs(invocation), environment.spawnProcess,
   )
+  // The `system` route drives the REAL mouse — wrap it in the foreground
+  // visibility notice (busy cursor + throttled tray toast).
+  const data = invocation.action === 'click' && invocation.route === 'system'
+    ? await withForegroundNotice(perform)
+    : await perform()
   if (invocation.action === 'list-targets') {
     if (!Array.isArray(data)) throw new CliError('EBACKEND', 'MadoPilot target list was invalid')
     return { ok: true, action: invocation.action, targets: data }

@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { CuaInvocation } from '../args.js'
 import { CliError } from '../errors.js'
 import type { CommandDeps, CommandPayload } from './deps.js'
+import { cuaArgsWantForeground, withForegroundNotice } from './foreground-notice.js'
 
 /**
  * Cua Driver one-shot command: in-process SDK (`CuaDriver.create()`), one tool
@@ -114,7 +115,13 @@ export async function callCuaTool(
   if (typeof args.session !== 'string' || args.session.trim() === '') {
     args.session = defaultSession
   }
-  const raw = (await driver.callTool(action, JSON.stringify(args))) as ToolResultShape
+  const call = () =>
+    (driver.callTool(action, JSON.stringify(args)) as Promise<ToolResultShape>)
+  // Foreground delivery takes over the user's real mouse/keyboard — wrap it
+  // in the visibility notice (busy cursor + throttled tray toast).
+  const raw = cuaArgsWantForeground(args)
+    ? await withForegroundNotice(call)
+    : await call()
   let structured: unknown
   if (typeof raw.structuredJson === 'string' && raw.structuredJson !== '') {
     try {

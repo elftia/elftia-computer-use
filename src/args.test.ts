@@ -241,6 +241,16 @@ describe('argv parsing: type / key / scroll / drag', () => {
     expectUsage(['key'], '--combo is required')
   })
 
+  it('key parses hold-ms within 1..60000', () => {
+    const inv = invOf(['key', '--combo', 'w', '--hold-ms', '1500']) as Extract<Invocation, { command: 'key' }>
+    expect(inv.holdMs).toBe(1500)
+    const plain = invOf(['key', '--combo', 'w']) as Extract<Invocation, { command: 'key' }>
+    expect(plain.holdMs).toBeUndefined()
+    expectUsage(['key', '--combo', 'w', '--hold-ms', '0'], '--hold-ms must be >= 1')
+    expectUsage(['key', '--combo', 'w', '--hold-ms', '60001'], '--hold-ms must be <= 60000')
+    expectUsage(['key', '--combo', 'w', '--hold-ms', 'fast'], '--hold-ms must be an integer')
+  })
+
   it('scroll requires all four parameters with enum validation', () => {
     expectUsage(['scroll', '--x', '1', '--y', '2', '--direction', 'up'], '--amount is required')
     expectUsage(

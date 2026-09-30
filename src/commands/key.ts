@@ -10,12 +10,14 @@ export async function runKey(inv: KeyInvocation, deps: CommandDeps): Promise<Com
     vk: inv.vk,
     extended: inv.extended,
     mods: inv.mods,
+    ...(inv.holdMs === undefined ? {} : { holdMs: inv.holdMs }),
   })
   const after = await maybeAfterShot(deps, inv)
   const payload: CommandPayload = {
     ok: true,
     action: 'key',
     combo: inv.combo,
+    ...(inv.holdMs === undefined ? {} : { holdMs: inv.holdMs }),
   }
   if (after !== undefined) {
     payload.after = after

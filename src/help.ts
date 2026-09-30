@@ -21,7 +21,9 @@ Commands:
                                               against the window's live bounds; fails ESTALE if the window is gone
   type --text <s>                             Type UTF-8 text (CJK, emoji) via clipboard paste.
                                               NOTE: replaces the current clipboard content
-  key --combo <combo>                         Press a key combination, e.g. ctrl+s, ctrl+shift+t, alt+f4
+  key --combo <combo> [--hold-ms <1..60000>]  Press a key combination, e.g. ctrl+s, ctrl+shift+t, alt+f4
+                                             --hold-ms presses and HOLDS the key that many ms before
+                                             release (hold input: in-game walking, continuous scroll)
   scroll --x <n> --y <n> --direction up|down|left|right --amount <n>
                                               Scroll at the given coordinates
   drag --from-x <n> --from-y <n> --to-x <n> --to-y <n>
@@ -67,6 +69,11 @@ Output discipline:
   Screenshots and UIA trees are always written to files — stdout carries paths and metadata only.
   Failure shape: {"ok": false, "error": {"code": "...", "message": "..."}}
   Error codes: EUSAGE, ENOTSUPPORTED, EBACKEND, EINPUT, ESTALE, EIO.
+
+Foreground visibility: every action that drives the REAL mouse/keyboard
+  (core click/type/key/scroll/drag, mado --route system, cua delivery_mode
+  "foreground") swaps the arrow cursor to arrow+hourglass and fires a tray
+  toast while it runs. Opt out with ELFTIA_CU_FOREGROUND_NOTICE=0.
 
 Platform support: Windows (zero-dependency PowerShell core; optional native MadoPilot; Cua Driver SDK).
 macOS/Linux: core commands fail with ENOTSUPPORTED (honest failure, no fake success); the Cua SDK

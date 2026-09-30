@@ -85,6 +85,8 @@ export type Invocation =
       vk: number
       extended: boolean
       mods: Modifier[]
+      /** >0 = key-down, dwell this many ms, key-up (hold input). */
+      holdMs?: number
       shot: boolean
       out?: string
     }
@@ -124,7 +126,7 @@ const VALUE_FLAGS: Record<CommandName, readonly string[]> = {
   crop: ['in', 'region', 'out'],
   click: ['x', 'y', 'button', 'mods', 'state', 'element', 'out'],
   type: ['text', 'out'],
-  key: ['combo', 'out'],
+  key: ['combo', 'hold-ms', 'out'],
   scroll: ['x', 'y', 'direction', 'amount', 'out'],
   drag: ['from-x', 'from-y', 'to-x', 'to-y', 'out'],
   'uia-tree': ['app', 'max-depth', 'out'],
@@ -498,6 +500,7 @@ function buildInvocation(command: CommandName, flags: FlagMap): Invocation {
         vk: parsed.vk,
         extended: parsed.extended,
         mods: parsed.mods,
+        holdMs: getInt(flags, 'hold-ms', { min: 1, max: 60000 }),
         shot: getBool(flags, 'shot'),
         out: getString(flags, 'out'),
       }

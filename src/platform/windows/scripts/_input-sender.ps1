@@ -162,6 +162,26 @@ namespace ComputerUse
             Send(events.ToArray());
         }
 
+        // Hold input: key (and mods) down, dwell, release. For apps that act on
+        // key-held duration (walk-in-game, continuous scroll, charge meters).
+        public static void KeyComboHold(int vk, bool extended, string modsCsv, int holdMs)
+        {
+            if (holdMs < 1 || holdMs > 60000)
+            {
+                throw new ArgumentException("hold duration must be 1..60000 ms");
+            }
+            ushort[] mods = ParseMods(modsCsv);
+            List<INPUT> down = new List<INPUT>();
+            down.AddRange(ModEvents(mods, false));
+            down.Add(Key((ushort)vk, false, extended));
+            Send(down.ToArray());
+            Thread.Sleep(holdMs);
+            List<INPUT> up = new List<INPUT>();
+            up.Add(Key((ushort)vk, true, extended));
+            up.AddRange(ModEvents(mods, true));
+            Send(up.ToArray());
+        }
+
         public static void Scroll(int x, int y, string direction, int amount)
         {
             if (amount < 1 || amount > 1000) { throw new ArgumentException("scroll amount must be 1..1000"); }

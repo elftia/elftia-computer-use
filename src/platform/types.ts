@@ -40,7 +40,7 @@ export type InputEvent =
       count: 1 | 2 | 3
       mods: Modifier[]
     }
-  | { kind: 'key'; vk: number; extended: boolean; mods: Modifier[] }
+  | { kind: 'key'; vk: number; extended: boolean; mods: Modifier[]; holdMs?: number }
   | {
       kind: 'scroll'
       x: number

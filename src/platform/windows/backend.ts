@@ -174,6 +174,9 @@ export class WindowsBackend implements PlatformBackend {
         if (evt.mods.length > 0) {
           args.push('-Mods', evt.mods.join(','))
         }
+        if (evt.holdMs !== undefined) {
+          args.push('-HoldMs', evt.holdMs)
+        }
         break
       case 'scroll':
         args.push(
