@@ -72,8 +72,9 @@ Output discipline:
 
 Foreground visibility: every action that drives the REAL mouse/keyboard
   (core click/type/key/scroll/drag, mado --route system, cua delivery_mode
-  "foreground") swaps the arrow cursor to arrow+hourglass and fires a tray
-  toast while it runs. Opt out with ELFTIA_CU_FOREGROUND_NOTICE=0.
+  "foreground") shows a CUA-style overlay — a pulsing orange ring following
+  the real cursor — and fires a tray toast. The ring hides itself ~6s after
+  the last foreground action. Opt out with ELFTIA_CU_FOREGROUND_NOTICE=0.
 
 Platform support: Windows (zero-dependency PowerShell core; optional native MadoPilot; Cua Driver SDK).
 macOS/Linux: core commands fail with ENOTSUPPORTED (honest failure, no fake success); the Cua SDK

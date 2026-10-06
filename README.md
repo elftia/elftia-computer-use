@@ -249,8 +249,10 @@ node dist/cli.js doctor   # end-to-end self-test
 
 Foreground visibility: every action that drives the REAL mouse/keyboard (core
 click/type/key/scroll/drag, `mado --route system`, cua `delivery_mode:"foreground"`)
-swaps the arrow cursor to arrow+hourglass and fires a throttled tray toast for
-the duration. Opt out with `ELFTIA_CU_FOREGROUND_NOTICE=0`.
+shows a CUA-style overlay — a pulsing orange ring following the real cursor,
+click-through and topmost — plus a throttled tray toast. The ring hides itself
+~6s after the last foreground action. Opt out with
+`ELFTIA_CU_FOREGROUND_NOTICE=0`.
 
 All agent-facing text (help, errors, docs) is English. The core command set stays
 zero-runtime-dependency (PowerShell facade); the optional Cua Driver route adds
